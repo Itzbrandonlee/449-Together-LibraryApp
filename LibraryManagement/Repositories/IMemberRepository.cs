@@ -8,4 +8,6 @@ public interface IMemberRepository
     Member? GetById(Guid id);
     Member Add(Member member);
     bool ExistsByEmail(string email);
+    void Update(Member member);
+    void Delete(Member member);
 }

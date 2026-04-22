@@ -60,4 +60,37 @@ public class MemberService : IMemberService
             MembershipDate = created.MembershipDate
         };
     }
+
+    public MemberResponse? UpdateMember(Guid id, UpdateMemberRequest request)
+    {
+        var member = _memberRepository.GetById(id);
+        
+        if (member is null)
+            return null;
+
+        member.FullName = request.FullName;
+        member.Email = request.Email;
+
+        _memberRepository.Update(member);
+
+        return new MemberResponse
+        {
+            Id = member.Id,
+            FullName = member.FullName,
+            Email = member.Email,
+            MembershipDate = member.MembershipDate
+        };
+    }
+
+    public bool DeleteMember(Guid id)
+    {
+        var member = _memberRepository.GetById(id);
+        
+        if (member is null)
+            return false;
+
+        _memberRepository.Delete(member);
+        
+        return true;
+    }
 }

@@ -33,4 +33,17 @@ public class MemberRepository : IMemberRepository
     {
         return _context.Members.Any(m => m.Email == email);
     }
+    public void Update(Member member)
+    {
+
+        _context.Members.Update(member); 
+        _context.SaveChanges(); 
+    }
+
+    public void Delete(Member member)
+    {
+
+        _context.Members.Remove(member);
+        _context.SaveChanges();
+    }
 }
