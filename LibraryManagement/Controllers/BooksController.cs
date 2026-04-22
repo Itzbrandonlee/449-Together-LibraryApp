@@ -27,15 +27,27 @@ public class BooksController : ControllerBase
         var response = _bookService.GetBookById(id);
         if (response is null)
         {
-            return NotFound();
+            return NotFound(new { error = $"Book with ID {id} not found." });
         }
 
         return Ok(response);
     }
 
     [HttpPost]
-    public ActionResult<BookResponse> CreateEvent([FromBody] CreateBookRequest input)
+    public ActionResult<BookResponse> CreateBook([FromBody] CreateBookRequest input)
     {
+        if (string.IsNullOrWhiteSpace(input.Title) || 
+            string.IsNullOrWhiteSpace(input.Author) || 
+            string.IsNullOrWhiteSpace(input.ISBN))
+        {
+            return BadRequest(new { error = "Title, Author, and ISBN are required." });
+        }
+
+        if (input.TotalCopies <= 0)
+        {
+            return BadRequest(new { error = "TotalCopies must be greater than 0." });
+        }
+
         var created = _bookService.CreateBook(input);
         return CreatedAtAction(nameof(GetBookById), new { id = created.Id }, created);
     }
@@ -43,7 +55,29 @@ public class BooksController : ControllerBase
     [HttpPut("{id:guid}")]
     public ActionResult<BookResponse> UpdateBook(Guid id, [FromBody] UpdateBookRequest input)
     {
+        if (string.IsNullOrWhiteSpace(input.Title) || 
+            string.IsNullOrWhiteSpace(input.Author) || 
+            string.IsNullOrWhiteSpace(input.ISBN))
+        {
+            return BadRequest(new { error = "Title, Author, and ISBN are required." });
+        }
+
+        if (input.TotalCopies <= 0)
+        {
+            return BadRequest(new { error = "TotalCopies must be greater than 0." });
+        }
+
+        if (input.AvailableCopies < 0)
+        {
+            return BadRequest(new { error = "AvailableCopies must be greater than or equal to 0." });
+        }
+
+        if (input.AvailableCopies > input.TotalCopies)
+        {
+            return BadRequest(new { error = "AvailableCopies cannot exceed TotalCopies." });
+        }
         var updated = _bookService.UpdateBook(id, input);
+        if (updated is null) return NotFound(new { error = $"Book with ID {id} not found." });
         return Ok(updated);
     }
 

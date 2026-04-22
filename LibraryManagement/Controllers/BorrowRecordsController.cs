@@ -32,13 +32,13 @@ public class BorrowingController : ControllerBase
     [HttpPost("borrow")]
     public ActionResult<BorrowRecordResponse> BorrowBook([FromBody] CreateBorrowRequest request)
     {
-
-        if (request == null)
+        if (request.BookId == Guid.Empty || request.MemberId == Guid.Empty)
         {
-            return BadRequest(new { error = "Request body cannot be empty." });
+            return BadRequest(new { error = "BookId and MemberId are strictly required." });
         }
         var result = _borrowService.BorrowBook(request);
         return Ok(result);
+
 
     }
 
@@ -46,13 +46,12 @@ public class BorrowingController : ControllerBase
     public ActionResult<BorrowRecordResponse> ReturnBook(Guid id)
     {
 
-        var result = _borrowService.ReturnBook(id);
-
-        if (result == null)
+        if (id == Guid.Empty)
         {
-            return NotFound(new { error = $"Borrow record with ID {id} was not found." });
+            return BadRequest(new { error = "A valid BorrowRecord ID is required." });
         }
-
+        var result = _borrowService.ReturnBook(id);
+        if (result == null) return NotFound(new { error = $"Borrow record with ID {id} not found." });
         return Ok(result);
     }
 

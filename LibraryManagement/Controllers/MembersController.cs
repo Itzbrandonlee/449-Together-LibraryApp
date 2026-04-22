@@ -56,6 +56,15 @@ public class MembersController : ControllerBase
     [HttpPut("{id:guid}")]
     public ActionResult<MemberResponse> UpdateMember(Guid id, [FromBody] UpdateMemberRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            return BadRequest(new { error = "FullName is required." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
+        {
+            return BadRequest(new { error = "A valid Email is required." });
+        }
         var updated = _memberService.UpdateMember(id, request);
 
         if (updated == null)
