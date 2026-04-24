@@ -16,74 +16,57 @@ public class MembersController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<MemberResponse>> GetMembers()
+    public async Task<ActionResult<IEnumerable<MemberResponse>>> GetMembers()
     {
-        var members = _memberService.GetMembers();
+        var members = await _memberService.GetMembersAsync();
         return Ok(members);
     }
 
     [HttpGet("{id:guid}")]
-    public ActionResult<MemberResponse> GetMemberById(Guid id)
+    public async Task<ActionResult<MemberResponse>> GetMemberById(Guid id)
     {
-        var member = _memberService.GetMemberById(id);
-
-        if (member == null)
-        {
+        var member = await _memberService.GetMemberByIdAsync(id);
+        if (member is null)
             return NotFound(new { error = $"Member with ID {id} was not found." });
-        }
 
         return Ok(member);
     }
 
     [HttpPost]
-    public ActionResult<MemberResponse> CreateMember([FromBody] CreateMemberRequest request)
+    public async Task<ActionResult<MemberResponse>> CreateMember([FromBody] CreateMemberRequest request)
     {
-
         if (string.IsNullOrWhiteSpace(request.FullName))
-        {
             return BadRequest(new { error = "FullName is required." });
-        }
 
         if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
-        {
             return BadRequest(new { error = "A valid Email is required." });
-        }
 
-        var created = _memberService.CreateMember(request);
+        var created = await _memberService.CreateMemberAsync(request);
         return CreatedAtAction(nameof(GetMemberById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:guid}")]
-    public ActionResult<MemberResponse> UpdateMember(Guid id, [FromBody] UpdateMemberRequest request)
+    public async Task<ActionResult<MemberResponse>> UpdateMember(Guid id, [FromBody] UpdateMemberRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.FullName))
-        {
             return BadRequest(new { error = "FullName is required." });
-        }
 
         if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
-        {
             return BadRequest(new { error = "A valid Email is required." });
-        }
-        var updated = _memberService.UpdateMember(id, request);
 
-        if (updated == null)
-        {
+        var updated = await _memberService.UpdateMemberAsync(id, request);
+        if (updated is null)
             return NotFound(new { error = $"Cannot update. Member with ID {id} not found." });
-        }
 
         return Ok(updated);
     }
 
     [HttpDelete("{id:guid}")]
-    public IActionResult DeleteMember(Guid id)
+    public async Task<IActionResult> DeleteMember(Guid id)
     {
-        var success = _memberService.DeleteMember(id);
-
+        var success = await _memberService.DeleteMemberAsync(id);
         if (!success)
-        {
             return NotFound(new { error = $"Cannot delete. Member with ID {id} not found." });
-        }
 
         return NoContent();
     }

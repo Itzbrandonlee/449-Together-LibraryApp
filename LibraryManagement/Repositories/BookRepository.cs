@@ -1,5 +1,6 @@
 using LibraryManagement.Api.Data;
 using LibraryManagement.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Api.Repositories;
 
@@ -12,38 +13,38 @@ public class BookRepository : IBookRepository
         _context = context;
     }
 
-    public IEnumerable<Book> GetAll()
+    public async Task<IEnumerable<Book>> GetAllAsync()
     {
-        return _context.Books.ToList();
+        return await _context.Books.ToListAsync();
     }
 
-    public Book? GetById(Guid id)
+    public async Task<Book?> GetByIdAsync(Guid id)
     {
-        return _context.Books.FirstOrDefault(b => b.Id == id);
+        return await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
     }
 
-    public Book Add(Book book)
+    public async Task<Book> AddAsync(Book book)
     {
         _context.Books.Add(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return book;
     }
 
-    public Book Update(Book book)
+    public async Task<Book> UpdateAsync(Book book)
     {
         _context.Books.Update(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return book;
     }
 
-    public void Delete(Book book)
+    public async Task DeleteAsync(Book book)
     {
         _context.Books.Remove(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
-    public bool ExistsByIsbn(string isbn)
+    public async Task<bool> ExistsByIsbnAsync(string isbn)
     {
-        return _context.Books.Any(b => b.ISBN == isbn);
+        return await _context.Books.AnyAsync(b => b.ISBN == isbn);
     }
 }

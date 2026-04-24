@@ -13,23 +13,23 @@ public class BookService : IBookService
         _bookRepository = bookRepository;
     }
 
-    public IEnumerable<BookResponse> GetBooks()
+    public async Task<IEnumerable<BookResponse>> GetBooksAsync()
     {
-        return _bookRepository.GetAll()
-            .Select(b => new BookResponse
-            {
-                Id = b.Id,
-                Title = b.Title,
-                Author = b.Author,
-                ISBN = b.ISBN,
-                TotalCopies = b.TotalCopies,
-                AvailableCopies = b.AvailableCopies
-            });
+        var books = await _bookRepository.GetAllAsync();
+        return books.Select(b => new BookResponse
+        {
+            Id = b.Id,
+            Title = b.Title,
+            Author = b.Author,
+            ISBN = b.ISBN,
+            TotalCopies = b.TotalCopies,
+            AvailableCopies = b.AvailableCopies
+        });
     }
 
-    public BookResponse? GetBookById(Guid id)
+    public async Task<BookResponse?> GetBookByIdAsync(Guid id)
     {
-        var book = _bookRepository.GetById(id);
+        var book = await _bookRepository.GetByIdAsync(id);
         if (book is null)
             return null;
 
@@ -44,9 +44,8 @@ public class BookService : IBookService
         };
     }
 
-    public BookResponse CreateBook(CreateBookRequest request)
+    public async Task<BookResponse> CreateBookAsync(CreateBookRequest request)
     {
-        // AvailableCopies starts equal to TotalCopies on creation
         var book = new Book
         {
             Id = Guid.NewGuid(),
@@ -57,8 +56,7 @@ public class BookService : IBookService
             AvailableCopies = request.TotalCopies
         };
 
-        var created = _bookRepository.Add(book);
-
+        var created = await _bookRepository.AddAsync(book);
         return new BookResponse
         {
             Id = created.Id,
@@ -70,10 +68,11 @@ public class BookService : IBookService
         };
     }
 
-    public BookResponse UpdateBook(Guid id, UpdateBookRequest request)
+    public async Task<BookResponse?> UpdateBookAsync(Guid id, UpdateBookRequest request)
     {
-        var book = _bookRepository.GetById(id)
-            ?? throw new InvalidOperationException("Book not found.");
+        var book = await _bookRepository.GetByIdAsync(id);
+        if (book is null)
+            return null;
 
         if (request.AvailableCopies > request.TotalCopies)
             throw new InvalidOperationException("AvailableCopies cannot exceed TotalCopies.");
@@ -84,8 +83,7 @@ public class BookService : IBookService
         book.TotalCopies = request.TotalCopies;
         book.AvailableCopies = request.AvailableCopies;
 
-        var updated = _bookRepository.Update(book);
-
+        var updated = await _bookRepository.UpdateAsync(book);
         return new BookResponse
         {
             Id = updated.Id,
@@ -97,11 +95,11 @@ public class BookService : IBookService
         };
     }
 
-    public void DeleteBook(Guid id)
+    public async Task DeleteBookAsync(Guid id)
     {
-        var book = _bookRepository.GetById(id)
+        var book = await _bookRepository.GetByIdAsync(id)
             ?? throw new InvalidOperationException("Book not found.");
 
-        _bookRepository.Delete(book);
+        await _bookRepository.DeleteAsync(book);
     }
 }

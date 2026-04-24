@@ -4,8 +4,8 @@ namespace LibraryManagement.Api.Services;
 
 public interface IBorrowRecordService
 {
-    IEnumerable<BorrowRecordResponse> GetBorrowRecords();
-    IEnumerable<BorrowRecordResponse> GetBorrowRecordsByMemberId(Guid memberId);
-    BorrowRecordResponse BorrowBook(CreateBorrowRequest request);
-    BorrowRecordResponse ReturnBook(Guid borrowRecordId);
+    Task<IEnumerable<BorrowRecordResponse>> GetBorrowRecordsAsync();
+    Task<IEnumerable<BorrowRecordResponse>> GetBorrowRecordsByMemberIdAsync(Guid memberId);
+    Task<BorrowRecordResponse> BorrowBookAsync(CreateBorrowRequest request);
+    Task<BorrowRecordResponse> ReturnBookAsync(Guid borrowRecordId);
 }

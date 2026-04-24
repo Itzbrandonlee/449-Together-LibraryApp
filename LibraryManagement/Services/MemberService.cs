@@ -13,21 +13,21 @@ public class MemberService : IMemberService
         _memberRepository = memberRepository;
     }
 
-    public IEnumerable<MemberResponse> GetMembers()
+    public async Task<IEnumerable<MemberResponse>> GetMembersAsync()
     {
-        return _memberRepository.GetAll()
-            .Select(m => new MemberResponse
-            {
-                Id = m.Id,
-                FullName = m.FullName,
-                Email = m.Email,
-                MembershipDate = m.MembershipDate
-            });
+        var members = await _memberRepository.GetAllAsync();
+        return members.Select(m => new MemberResponse
+        {
+            Id = m.Id,
+            FullName = m.FullName,
+            Email = m.Email,
+            MembershipDate = m.MembershipDate
+        });
     }
 
-    public MemberResponse? GetMemberById(Guid id)
+    public async Task<MemberResponse?> GetMemberByIdAsync(Guid id)
     {
-        var member = _memberRepository.GetById(id);
+        var member = await _memberRepository.GetByIdAsync(id);
         if (member is null)
             return null;
 
@@ -40,7 +40,7 @@ public class MemberService : IMemberService
         };
     }
 
-    public MemberResponse CreateMember(CreateMemberRequest request)
+    public async Task<MemberResponse> CreateMemberAsync(CreateMemberRequest request)
     {
         var member = new Member
         {
@@ -50,8 +50,7 @@ public class MemberService : IMemberService
             MembershipDate = DateTime.UtcNow
         };
 
-        var created = _memberRepository.Add(member);
-
+        var created = await _memberRepository.AddAsync(member);
         return new MemberResponse
         {
             Id = created.Id,
@@ -61,17 +60,15 @@ public class MemberService : IMemberService
         };
     }
 
-    public MemberResponse? UpdateMember(Guid id, UpdateMemberRequest request)
+    public async Task<MemberResponse?> UpdateMemberAsync(Guid id, UpdateMemberRequest request)
     {
-        var member = _memberRepository.GetById(id);
-        
+        var member = await _memberRepository.GetByIdAsync(id);
         if (member is null)
             return null;
 
         member.FullName = request.FullName;
         member.Email = request.Email;
-
-        _memberRepository.Update(member);
+        await _memberRepository.UpdateAsync(member);
 
         return new MemberResponse
         {
@@ -82,15 +79,13 @@ public class MemberService : IMemberService
         };
     }
 
-    public bool DeleteMember(Guid id)
+    public async Task<bool> DeleteMemberAsync(Guid id)
     {
-        var member = _memberRepository.GetById(id);
-        
+        var member = await _memberRepository.GetByIdAsync(id);
         if (member is null)
             return false;
 
-        _memberRepository.Delete(member);
-        
+        await _memberRepository.DeleteAsync(member);
         return true;
     }
 }

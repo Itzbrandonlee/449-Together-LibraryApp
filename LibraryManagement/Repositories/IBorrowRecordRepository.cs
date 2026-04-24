@@ -4,10 +4,10 @@ namespace LibraryManagement.Api.Repositories;
 
 public interface IBorrowRecordRepository
 {
-    IEnumerable<BorrowRecord> GetAll();
-    BorrowRecord? GetById(Guid id);
-    IEnumerable<BorrowRecord> GetByMemberId(Guid memberId);
-    BorrowRecord Add(BorrowRecord record);
-    BorrowRecord Update(BorrowRecord record);
-    bool HasActiveBorrow(Guid memberId, Guid bookId);
+    Task<IEnumerable<BorrowRecord>> GetAllAsync();
+    Task<BorrowRecord?> GetByIdAsync(Guid id);
+    Task<IEnumerable<BorrowRecord>> GetByMemberIdAsync(Guid memberId);
+    Task<BorrowRecord> AddAsync(BorrowRecord record);
+    Task<BorrowRecord> UpdateAsync(BorrowRecord record);
+    Task<bool> HasActiveBorrowAsync(Guid memberId, Guid bookId);
 }

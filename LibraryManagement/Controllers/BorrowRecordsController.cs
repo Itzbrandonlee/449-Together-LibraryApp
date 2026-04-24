@@ -16,43 +16,39 @@ public class BorrowingController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<BorrowRecordResponse>> GetBorrowRecords()
+    public async Task<ActionResult<IEnumerable<BorrowRecordResponse>>> GetBorrowRecords()
     {
-        var records = _borrowService.GetBorrowRecords();
+        var records = await _borrowService.GetBorrowRecordsAsync();
         return Ok(records);
     }
 
     [HttpGet("history/{memberId:guid}")]
-    public ActionResult<IEnumerable<BorrowRecordResponse>> GetMemberHistory(Guid memberId)
+    public async Task<ActionResult<IEnumerable<BorrowRecordResponse>>> GetMemberHistory(Guid memberId)
     {
-        var history = _borrowService.GetBorrowRecordsByMemberId(memberId);
+        var history = await _borrowService.GetBorrowRecordsByMemberIdAsync(memberId);
         return Ok(history);
     }
 
     [HttpPost("borrow")]
-    public ActionResult<BorrowRecordResponse> BorrowBook([FromBody] CreateBorrowRequest request)
+    public async Task<ActionResult<BorrowRecordResponse>> BorrowBook([FromBody] CreateBorrowRequest request)
     {
         if (request.BookId == Guid.Empty || request.MemberId == Guid.Empty)
-        {
             return BadRequest(new { error = "BookId and MemberId are strictly required." });
-        }
-        var result = _borrowService.BorrowBook(request);
+
+        var result = await _borrowService.BorrowBookAsync(request);
         return Ok(result);
-
-
     }
 
     [HttpPost("return/{id:guid}")]
-    public ActionResult<BorrowRecordResponse> ReturnBook(Guid id)
+    public async Task<ActionResult<BorrowRecordResponse>> ReturnBook(Guid id)
     {
-
         if (id == Guid.Empty)
-        {
             return BadRequest(new { error = "A valid BorrowRecord ID is required." });
-        }
-        var result = _borrowService.ReturnBook(id);
-        if (result == null) return NotFound(new { error = $"Borrow record with ID {id} not found." });
+
+        var result = await _borrowService.ReturnBookAsync(id);
+        if (result is null)
+            return NotFound(new { error = $"Borrow record with ID {id} not found." });
+
         return Ok(result);
     }
-
 }
