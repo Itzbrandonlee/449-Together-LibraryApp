@@ -70,9 +70,8 @@ public class BookService : IBookService
 
     public async Task<BookResponse?> UpdateBookAsync(Guid id, UpdateBookRequest request)
     {
-        var book = await _bookRepository.GetByIdAsync(id);
-        if (book is null)
-            return null;
+        var book = await _bookRepository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException("Book not found.");
 
         if (request.AvailableCopies > request.TotalCopies)
             throw new InvalidOperationException("AvailableCopies cannot exceed TotalCopies.");
