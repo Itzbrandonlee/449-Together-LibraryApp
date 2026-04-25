@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using LibraryManagement.Api.Exceptions;
 
 namespace LibraryManagement.Api.Middleware;
 
@@ -19,6 +20,11 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (ConflictException ex)
+        {
+            _logger.LogWarning(ex, "A conflict occurred.");
+            await WriteErrorResponse(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (InvalidOperationException ex)
         {

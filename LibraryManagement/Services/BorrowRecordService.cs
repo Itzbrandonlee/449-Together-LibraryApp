@@ -1,4 +1,5 @@
 using LibraryManagement.Api.Dtos;
+using LibraryManagement.Api.Exceptions;
 using LibraryManagement.Api.Models;
 using LibraryManagement.Api.Repositories;
 
@@ -41,10 +42,10 @@ public class BorrowRecordService : IBorrowRecordService
             ?? throw new InvalidOperationException("Member not found.");
 
         if (book.AvailableCopies <= 0)
-            throw new InvalidOperationException("No copies of this book are available.");
+            throw new ConflictException("No copies of this book are currently available.");
 
         if (await _borrowRecordRepository.HasActiveBorrowAsync(request.MemberId, request.BookId))
-            throw new InvalidOperationException("Member already has an active borrow for this book.");
+            throw new ConflictException("Member already has an active borrow for this book.");
 
         book.AvailableCopies--;
         await _bookRepository.UpdateAsync(book);
