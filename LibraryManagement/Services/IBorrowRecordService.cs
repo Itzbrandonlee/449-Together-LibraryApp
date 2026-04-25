@@ -6,6 +6,6 @@ public interface IBorrowRecordService
 {
     IEnumerable<BorrowRecordResponse> GetBorrowRecords();
     IEnumerable<BorrowRecordResponse> GetBorrowRecordsByMemberId(Guid memberId);
-    BorrowRecordResponse BorrowBook(CreateBorrowRequest request);
-    BorrowRecordResponse ReturnBook(Guid borrowRecordId);
+    Task<BorrowRecordResponse> BorrowBook(CreateBorrowRequest request);
+    Task<BorrowRecordResponse> ReturnBook(Guid borrowRecordId);
 }

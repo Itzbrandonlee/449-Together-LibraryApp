@@ -30,27 +30,24 @@ public class BorrowingController : ControllerBase
     }
 
     [HttpPost("borrow")]
-    public ActionResult<BorrowRecordResponse> BorrowBook([FromBody] CreateBorrowRequest request)
+    public async Task<ActionResult<BorrowRecordResponse>> BorrowBook([FromBody] CreateBorrowRequest request)
     {
         if (request.BookId == Guid.Empty || request.MemberId == Guid.Empty)
         {
             return BadRequest(new { error = "BookId and MemberId are strictly required." });
         }
-        var result = _borrowService.BorrowBook(request);
+        var result = await _borrowService.BorrowBook(request);
         return Ok(result);
-
-
     }
 
     [HttpPost("return/{id:guid}")]
-    public ActionResult<BorrowRecordResponse> ReturnBook(Guid id)
+    public async Task<ActionResult<BorrowRecordResponse>> ReturnBook(Guid id)
     {
-
         if (id == Guid.Empty)
         {
             return BadRequest(new { error = "A valid BorrowRecord ID is required." });
         }
-        var result = _borrowService.ReturnBook(id);
+        var result = await _borrowService.ReturnBook(id);
         if (result == null) return NotFound(new { error = $"Borrow record with ID {id} not found." });
         return Ok(result);
     }

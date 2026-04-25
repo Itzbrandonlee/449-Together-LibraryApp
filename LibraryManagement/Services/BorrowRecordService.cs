@@ -1,6 +1,7 @@
 using LibraryManagement.Api.Dtos;
 using LibraryManagement.Api.Models;
 using LibraryManagement.Api.Repositories;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LibraryManagement.Api.Services;
 
@@ -9,15 +10,18 @@ public class BorrowRecordService : IBorrowRecordService
     private readonly IBorrowRecordRepository _borrowRecordRepository;
     private readonly IBookRepository _bookRepository;
     private readonly IMemberRepository _memberRepository;
+    private readonly IMemoryCache _cache;
 
     public BorrowRecordService(
         IBorrowRecordRepository borrowRecordRepository,
         IBookRepository bookRepository,
-        IMemberRepository memberRepository)
+        IMemberRepository memberRepository,
+        IMemoryCache cache)
     {
         _borrowRecordRepository = borrowRecordRepository;
         _bookRepository = bookRepository;
         _memberRepository = memberRepository;
+        _cache = cache;
     }
 
     public IEnumerable<BorrowRecordResponse> GetBorrowRecords()
@@ -30,7 +34,7 @@ public class BorrowRecordService : IBorrowRecordService
         return _borrowRecordRepository.GetByMemberId(memberId).Select(MapToResponse);
     }
 
-    public BorrowRecordResponse BorrowBook(CreateBorrowRequest request)
+    public async Task<BorrowRecordResponse> BorrowBook(CreateBorrowRequest request)
     {
         var book = _bookRepository.GetById(request.BookId)
             ?? throw new InvalidOperationException("Book not found.");
@@ -38,14 +42,18 @@ public class BorrowRecordService : IBorrowRecordService
         var member = _memberRepository.GetById(request.MemberId)
             ?? throw new InvalidOperationException("Member not found.");
 
-        if (book.AvailableCopies <= 0)
-            throw new InvalidOperationException("No copies of this book are available.");
-
         if (_borrowRecordRepository.HasActiveBorrow(request.MemberId, request.BookId))
             throw new InvalidOperationException("Member already has an active borrow for this book.");
 
-        book.AvailableCopies--;
-        _bookRepository.Update(book);
+        // Atomic conditional decrement: succeeds only if AvailableCopies > 0 at the DB level.
+        // This prevents two simultaneous requests from both borrowing the last copy.
+        bool reserved = await _bookRepository.TryDecrementAvailableCopiesAsync(request.BookId);
+        if (!reserved)
+            throw new InvalidOperationException("No copies of this book are available.");
+
+        // Invalidate cached book data so reads reflect the updated AvailableCopies.
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{request.BookId}");
 
         var record = new BorrowRecord
         {
@@ -62,7 +70,7 @@ public class BorrowRecordService : IBorrowRecordService
         return MapToResponse(created);
     }
 
-    public BorrowRecordResponse ReturnBook(Guid borrowRecordId)
+    public async Task<BorrowRecordResponse> ReturnBook(Guid borrowRecordId)
     {
         var record = _borrowRecordRepository.GetById(borrowRecordId)
             ?? throw new InvalidOperationException("Borrow record not found.");
@@ -73,10 +81,14 @@ public class BorrowRecordService : IBorrowRecordService
         record.Status = "Returned";
         record.ReturnDate = DateTime.UtcNow;
 
-        record.Book!.AvailableCopies++;
-        _bookRepository.Update(record.Book);
-
         var updated = _borrowRecordRepository.Update(record);
+
+        await _bookRepository.IncrementAvailableCopiesAsync(record.BookId);
+
+        // Invalidate cached book data so reads reflect the updated AvailableCopies.
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{record.BookId}");
+
         return MapToResponse(updated);
     }
 
