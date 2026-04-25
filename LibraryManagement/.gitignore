@@ -5,6 +5,8 @@
 [Rr]elease/
 [Rr]eleases/
 artifacts/
+LibraryManagement/bin/
+LibraryManagement/obj/
 
 # Local environment and user-specific files
 .vs/
