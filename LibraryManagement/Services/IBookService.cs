@@ -4,9 +4,9 @@ namespace LibraryManagement.Api.Services;
 
 public interface IBookService
 {
-    IEnumerable<BookResponse> GetBooks();
-    BookResponse? GetBookById(Guid id);
-    BookResponse CreateBook(CreateBookRequest request);
-    BookResponse UpdateBook(Guid id, UpdateBookRequest request);
-    void DeleteBook(Guid id);
+    Task<IEnumerable<BookResponse>> GetBooksAsync();
+    Task<BookResponse?> GetBookByIdAsync(Guid id);
+    Task<BookResponse> CreateBookAsync(CreateBookRequest request);
+    Task<BookResponse?> UpdateBookAsync(Guid id, UpdateBookRequest request);
+    Task DeleteBookAsync(Guid id);
 }

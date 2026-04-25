@@ -20,32 +20,34 @@ public class BorrowRecordService : IBorrowRecordService
         _memberRepository = memberRepository;
     }
 
-    public IEnumerable<BorrowRecordResponse> GetBorrowRecords()
+    public async Task<IEnumerable<BorrowRecordResponse>> GetBorrowRecordsAsync()
     {
-        return _borrowRecordRepository.GetAll().Select(MapToResponse);
+        var records = await _borrowRecordRepository.GetAllAsync();
+        return records.Select(MapToResponse);
     }
 
-    public IEnumerable<BorrowRecordResponse> GetBorrowRecordsByMemberId(Guid memberId)
+    public async Task<IEnumerable<BorrowRecordResponse>> GetBorrowRecordsByMemberIdAsync(Guid memberId)
     {
-        return _borrowRecordRepository.GetByMemberId(memberId).Select(MapToResponse);
+        var records = await _borrowRecordRepository.GetByMemberIdAsync(memberId);
+        return records.Select(MapToResponse);
     }
 
-    public BorrowRecordResponse BorrowBook(CreateBorrowRequest request)
+    public async Task<BorrowRecordResponse> BorrowBookAsync(CreateBorrowRequest request)
     {
-        var book = _bookRepository.GetById(request.BookId)
+        var book = await _bookRepository.GetByIdAsync(request.BookId)
             ?? throw new InvalidOperationException("Book not found.");
 
-        var member = _memberRepository.GetById(request.MemberId)
+        var member = await _memberRepository.GetByIdAsync(request.MemberId)
             ?? throw new InvalidOperationException("Member not found.");
 
         if (book.AvailableCopies <= 0)
             throw new InvalidOperationException("No copies of this book are available.");
 
-        if (_borrowRecordRepository.HasActiveBorrow(request.MemberId, request.BookId))
+        if (await _borrowRecordRepository.HasActiveBorrowAsync(request.MemberId, request.BookId))
             throw new InvalidOperationException("Member already has an active borrow for this book.");
 
         book.AvailableCopies--;
-        _bookRepository.Update(book);
+        await _bookRepository.UpdateAsync(book);
 
         var record = new BorrowRecord
         {
@@ -58,13 +60,13 @@ public class BorrowRecordService : IBorrowRecordService
             Member = member
         };
 
-        var created = _borrowRecordRepository.Add(record);
+        var created = await _borrowRecordRepository.AddAsync(record);
         return MapToResponse(created);
     }
 
-    public BorrowRecordResponse ReturnBook(Guid borrowRecordId)
+    public async Task<BorrowRecordResponse> ReturnBookAsync(Guid borrowRecordId)
     {
-        var record = _borrowRecordRepository.GetById(borrowRecordId)
+        var record = await _borrowRecordRepository.GetByIdAsync(borrowRecordId)
             ?? throw new InvalidOperationException("Borrow record not found.");
 
         if (record.Status != "Borrowed")
@@ -72,11 +74,10 @@ public class BorrowRecordService : IBorrowRecordService
 
         record.Status = "Returned";
         record.ReturnDate = DateTime.UtcNow;
-
         record.Book!.AvailableCopies++;
-        _bookRepository.Update(record.Book);
 
-        var updated = _borrowRecordRepository.Update(record);
+        await _bookRepository.UpdateAsync(record.Book);
+        var updated = await _borrowRecordRepository.UpdateAsync(record);
         return MapToResponse(updated);
     }
 

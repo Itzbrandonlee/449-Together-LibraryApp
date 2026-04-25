@@ -4,9 +4,9 @@ namespace LibraryManagement.Api.Services;
 
 public interface IMemberService
 {
-    IEnumerable<MemberResponse> GetMembers();
-    MemberResponse? GetMemberById(Guid id);
-    MemberResponse CreateMember(CreateMemberRequest request);
-    MemberResponse? UpdateMember(Guid id, UpdateMemberRequest request);
-    bool DeleteMember(Guid id);
+    Task<IEnumerable<MemberResponse>> GetMembersAsync();
+    Task<MemberResponse?> GetMemberByIdAsync(Guid id);
+    Task<MemberResponse> CreateMemberAsync(CreateMemberRequest request);
+    Task<MemberResponse?> UpdateMemberAsync(Guid id, UpdateMemberRequest request);
+    Task<bool> DeleteMemberAsync(Guid id);
 }

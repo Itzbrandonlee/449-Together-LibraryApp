@@ -1,5 +1,6 @@
 using LibraryManagement.Api.Data;
 using LibraryManagement.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Api.Repositories;
 
@@ -12,38 +13,37 @@ public class MemberRepository : IMemberRepository
         _context = context;
     }
 
-    public IEnumerable<Member> GetAll()
+    public async Task<IEnumerable<Member>> GetAllAsync()
     {
-        return _context.Members.ToList();
+        return await _context.Members.ToListAsync();
     }
 
-    public Member? GetById(Guid id)
+    public async Task<Member?> GetByIdAsync(Guid id)
     {
-        return _context.Members.FirstOrDefault(m => m.Id == id);
+        return await _context.Members.FirstOrDefaultAsync(m => m.Id == id);
     }
 
-    public Member Add(Member member)
+    public async Task<Member> AddAsync(Member member)
     {
         _context.Members.Add(member);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return member;
     }
 
-    public bool ExistsByEmail(string email)
+    public async Task<bool> ExistsByEmailAsync(string email)
     {
-        return _context.Members.Any(m => m.Email == email);
-    }
-    public void Update(Member member)
-    {
-
-        _context.Members.Update(member); 
-        _context.SaveChanges(); 
+        return await _context.Members.AnyAsync(m => m.Email == email);
     }
 
-    public void Delete(Member member)
+    public async Task UpdateAsync(Member member)
     {
+        _context.Members.Update(member);
+        await _context.SaveChangesAsync();
+    }
 
+    public async Task DeleteAsync(Member member)
+    {
         _context.Members.Remove(member);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 }
