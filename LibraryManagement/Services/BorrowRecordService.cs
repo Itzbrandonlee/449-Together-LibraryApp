@@ -27,8 +27,17 @@ public class BorrowRecordService : IBorrowRecordService
         return records.Select(MapToResponse);
     }
 
+    public async Task<BorrowRecordResponse?> GetBorrowRecordByIdAsync(Guid id)
+    {
+        var record = await _borrowRecordRepository.GetByIdAsync(id);
+        return record is null ? null : MapToResponse(record);
+    }
+
     public async Task<IEnumerable<BorrowRecordResponse>> GetBorrowRecordsByMemberIdAsync(Guid memberId)
     {
+        _ = await _memberRepository.GetByIdAsync(memberId)
+            ?? throw new NotFoundException($"Member with ID {memberId} not found.");
+
         var records = await _borrowRecordRepository.GetByMemberIdAsync(memberId);
         return records.Select(MapToResponse);
     }
@@ -36,10 +45,10 @@ public class BorrowRecordService : IBorrowRecordService
     public async Task<BorrowRecordResponse> BorrowBookAsync(CreateBorrowRequest request)
     {
         var book = await _bookRepository.GetByIdAsync(request.BookId)
-            ?? throw new InvalidOperationException("Book not found.");
+            ?? throw new NotFoundException($"Book with ID {request.BookId} not found.");
 
         var member = await _memberRepository.GetByIdAsync(request.MemberId)
-            ?? throw new InvalidOperationException("Member not found.");
+            ?? throw new NotFoundException($"Member with ID {request.MemberId} not found.");
 
         if (book.AvailableCopies <= 0)
             throw new ConflictException("No copies of this book are currently available.");
@@ -68,10 +77,10 @@ public class BorrowRecordService : IBorrowRecordService
     public async Task<BorrowRecordResponse> ReturnBookAsync(Guid borrowRecordId)
     {
         var record = await _borrowRecordRepository.GetByIdAsync(borrowRecordId)
-            ?? throw new InvalidOperationException("Borrow record not found.");
+            ?? throw new NotFoundException($"Borrow record with ID {borrowRecordId} not found.");
 
         if (record.Status != "Borrowed")
-            throw new InvalidOperationException("This book has already been returned.");
+            throw new ConflictException("This book has already been returned.");
 
         record.Status = "Returned";
         record.ReturnDate = DateTime.UtcNow;

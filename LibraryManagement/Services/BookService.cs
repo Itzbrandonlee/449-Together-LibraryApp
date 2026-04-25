@@ -70,8 +70,9 @@ public class BookService : IBookService
 
     public async Task<BookResponse?> UpdateBookAsync(Guid id, UpdateBookRequest request)
     {
-        var book = await _bookRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Book not found.");
+        var book = await _bookRepository.GetByIdAsync(id);
+        if (book is null)
+            return null;
 
         if (request.AvailableCopies > request.TotalCopies)
             throw new InvalidOperationException("AvailableCopies cannot exceed TotalCopies.");
@@ -94,11 +95,13 @@ public class BookService : IBookService
         };
     }
 
-    public async Task DeleteBookAsync(Guid id)
+    public async Task<bool> DeleteBookAsync(Guid id)
     {
-        var book = await _bookRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Book not found.");
+        var book = await _bookRepository.GetByIdAsync(id);
+        if (book is null)
+            return false;
 
         await _bookRepository.DeleteAsync(book);
+        return true;
     }
 }
