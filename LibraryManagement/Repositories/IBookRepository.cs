@@ -10,4 +10,6 @@ public interface IBookRepository
     Book Update(Book book);
     void Delete(Book book);
     bool ExistsByIsbn(string isbn);
+    Task<bool> TryDecrementAvailableCopiesAsync(Guid bookId);
+    Task IncrementAvailableCopiesAsync(Guid bookId);
 }

@@ -1,21 +1,29 @@
 using LibraryManagement.Api.Dtos;
 using LibraryManagement.Api.Models;
 using LibraryManagement.Api.Repositories;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LibraryManagement.Api.Services;
 
 public class BookService : IBookService
 {
     private readonly IBookRepository _bookRepository;
+    private readonly IMemoryCache _cache;
 
-    public BookService(IBookRepository bookRepository)
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(2);
+
+    public BookService(IBookRepository bookRepository, IMemoryCache cache)
     {
         _bookRepository = bookRepository;
+        _cache = cache;
     }
 
     public IEnumerable<BookResponse> GetBooks()
     {
-        return _bookRepository.GetAll()
+        if (_cache.TryGetValue("books_all", out IEnumerable<BookResponse>? cached) && cached is not null)
+            return cached;
+
+        var books = _bookRepository.GetAll()
             .Select(b => new BookResponse
             {
                 Id = b.Id,
@@ -24,16 +32,24 @@ public class BookService : IBookService
                 ISBN = b.ISBN,
                 TotalCopies = b.TotalCopies,
                 AvailableCopies = b.AvailableCopies
-            });
+            })
+            .ToList();
+
+        _cache.Set("books_all", books, CacheDuration);
+        return books;
     }
 
     public BookResponse? GetBookById(Guid id)
     {
+        string key = $"book_{id}";
+        if (_cache.TryGetValue(key, out BookResponse? cached) && cached is not null)
+            return cached;
+
         var book = _bookRepository.GetById(id);
         if (book is null)
             return null;
 
-        return new BookResponse
+        var response = new BookResponse
         {
             Id = book.Id,
             Title = book.Title,
@@ -42,11 +58,13 @@ public class BookService : IBookService
             TotalCopies = book.TotalCopies,
             AvailableCopies = book.AvailableCopies
         };
+
+        _cache.Set(key, response, CacheDuration);
+        return response;
     }
 
     public BookResponse CreateBook(CreateBookRequest request)
     {
-        // AvailableCopies starts equal to TotalCopies on creation
         var book = new Book
         {
             Id = Guid.NewGuid(),
@@ -58,6 +76,8 @@ public class BookService : IBookService
         };
 
         var created = _bookRepository.Add(book);
+
+        _cache.Remove("books_all");
 
         return new BookResponse
         {
@@ -86,6 +106,9 @@ public class BookService : IBookService
 
         var updated = _bookRepository.Update(book);
 
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{id}");
+
         return new BookResponse
         {
             Id = updated.Id,
@@ -103,5 +126,8 @@ public class BookService : IBookService
             ?? throw new InvalidOperationException("Book not found.");
 
         _bookRepository.Delete(book);
+
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{id}");
     }
 }
