@@ -1,39 +1,54 @@
 using LibraryManagement.Api.Dtos;
+using LibraryManagement.Api.Exceptions;
 using LibraryManagement.Api.Models;
 using LibraryManagement.Api.Repositories;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LibraryManagement.Api.Services;
 
 public class BookService : IBookService
 {
     private readonly IBookRepository _bookRepository;
+    private readonly IMemoryCache _cache;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(2);
 
-    public BookService(IBookRepository bookRepository)
+    public BookService(IBookRepository bookRepository, IMemoryCache cache)
     {
         _bookRepository = bookRepository;
+        _cache = cache;
     }
 
-    public IEnumerable<BookResponse> GetBooks()
+    public async Task<IEnumerable<BookResponse>> GetBooksAsync()
     {
-        return _bookRepository.GetAll()
-            .Select(b => new BookResponse
-            {
-                Id = b.Id,
-                Title = b.Title,
-                Author = b.Author,
-                ISBN = b.ISBN,
-                TotalCopies = b.TotalCopies,
-                AvailableCopies = b.AvailableCopies
-            });
+        if (_cache.TryGetValue("books_all", out IEnumerable<BookResponse>? cached) && cached is not null)
+            return cached;
+
+        var books = await _bookRepository.GetAllAsync();
+        var response = books.Select(b => new BookResponse
+        {
+            Id = b.Id,
+            Title = b.Title,
+            Author = b.Author,
+            ISBN = b.ISBN,
+            TotalCopies = b.TotalCopies,
+            AvailableCopies = b.AvailableCopies
+        }).ToList();
+
+        _cache.Set("books_all", response, CacheDuration);
+        return response;
     }
 
-    public BookResponse? GetBookById(Guid id)
+    public async Task<BookResponse?> GetBookByIdAsync(Guid id)
     {
-        var book = _bookRepository.GetById(id);
+        string key = $"book_{id}";
+        if (_cache.TryGetValue(key, out BookResponse? cached) && cached is not null)
+            return cached;
+
+        var book = await _bookRepository.GetByIdAsync(id);
         if (book is null)
             return null;
 
-        return new BookResponse
+        var response = new BookResponse
         {
             Id = book.Id,
             Title = book.Title,
@@ -42,11 +57,16 @@ public class BookService : IBookService
             TotalCopies = book.TotalCopies,
             AvailableCopies = book.AvailableCopies
         };
+
+        _cache.Set(key, response, CacheDuration);
+        return response;
     }
 
-    public BookResponse CreateBook(CreateBookRequest request)
+    public async Task<BookResponse> CreateBookAsync(CreateBookRequest request)
     {
-        // AvailableCopies starts equal to TotalCopies on creation
+        if (await _bookRepository.ExistsByIsbnAsync(request.ISBN))
+            throw new ConflictException($"A book with ISBN '{request.ISBN}' already exists.");
+
         var book = new Book
         {
             Id = Guid.NewGuid(),
@@ -57,7 +77,8 @@ public class BookService : IBookService
             AvailableCopies = request.TotalCopies
         };
 
-        var created = _bookRepository.Add(book);
+        var created = await _bookRepository.AddAsync(book);
+        _cache.Remove("books_all");
 
         return new BookResponse
         {
@@ -70,13 +91,17 @@ public class BookService : IBookService
         };
     }
 
-    public BookResponse UpdateBook(Guid id, UpdateBookRequest request)
+    public async Task<BookResponse?> UpdateBookAsync(Guid id, UpdateBookRequest request)
     {
-        var book = _bookRepository.GetById(id)
-            ?? throw new InvalidOperationException("Book not found.");
+        var book = await _bookRepository.GetByIdAsync(id);
+        if (book is null)
+            return null;
 
         if (request.AvailableCopies > request.TotalCopies)
             throw new InvalidOperationException("AvailableCopies cannot exceed TotalCopies.");
+
+        if (book.ISBN != request.ISBN && await _bookRepository.ExistsByIsbnAsync(request.ISBN))
+            throw new ConflictException($"A book with ISBN '{request.ISBN}' already exists.");
 
         book.Title = request.Title;
         book.Author = request.Author;
@@ -84,7 +109,11 @@ public class BookService : IBookService
         book.TotalCopies = request.TotalCopies;
         book.AvailableCopies = request.AvailableCopies;
 
-        var updated = _bookRepository.Update(book);
+        var updated = await _bookRepository.UpdateAsync(book);
+
+        // Invalidate both the list cache and the individual book cache
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{id}");
 
         return new BookResponse
         {
@@ -97,11 +126,18 @@ public class BookService : IBookService
         };
     }
 
-    public void DeleteBook(Guid id)
+    public async Task<bool> DeleteBookAsync(Guid id)
     {
-        var book = _bookRepository.GetById(id)
-            ?? throw new InvalidOperationException("Book not found.");
+        var book = await _bookRepository.GetByIdAsync(id);
+        if (book is null)
+            return false;
 
-        _bookRepository.Delete(book);
+        await _bookRepository.DeleteAsync(book);
+
+        // Invalidate both the list cache and the individual book cache
+        _cache.Remove("books_all");
+        _cache.Remove($"book_{id}");
+
+        return true;
     }
 }

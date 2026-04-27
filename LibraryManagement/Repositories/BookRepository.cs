@@ -1,5 +1,6 @@
 using LibraryManagement.Api.Data;
 using LibraryManagement.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Api.Repositories;
 
@@ -12,38 +13,67 @@ public class BookRepository : IBookRepository
         _context = context;
     }
 
-    public IEnumerable<Book> GetAll()
+    /// <summary>
+    /// Atomically decrements AvailableCopies if > 0. Prevents race conditions
+    /// where multiple requests could borrow the last copy simultaneously.
+    /// Uses SQL UPDATE with WHERE to ensure atomicity.
+    /// </summary>
+    public async Task<bool> TryDecrementAvailableCopiesAsync(Guid bookId)
     {
-        return _context.Books.ToList();
+        // Use raw SQL for atomic update: only decrement if AvailableCopies > 0
+        var affectedRows = await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE Books SET AvailableCopies = AvailableCopies - 1 WHERE Id = {0} AND AvailableCopies > 0",
+            bookId);
+
+        return affectedRows > 0; // Returns true if update succeeded (book was available)
     }
 
-    public Book? GetById(Guid id)
+    /// <summary>
+    /// Atomically increments AvailableCopies when a book is returned.
+    /// Ensures AvailableCopies never exceeds TotalCopies.
+    /// </summary>
+    public async Task<bool> IncrementAvailableCopiesAsync(Guid bookId)
     {
-        return _context.Books.FirstOrDefault(b => b.Id == id);
+        // Use raw SQL for atomic update: only increment if AvailableCopies < TotalCopies
+        var affectedRows = await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE Books SET AvailableCopies = AvailableCopies + 1 WHERE Id = {0} AND AvailableCopies < TotalCopies",
+            bookId);
+
+        return affectedRows > 0; // Returns true if update succeeded
     }
 
-    public Book Add(Book book)
+    public async Task<IEnumerable<Book>> GetAllAsync()
+    {
+        return await _context.Books.ToListAsync();
+    }
+
+    public async Task<Book?> GetByIdAsync(Guid id)
+    {
+        return await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
+    }
+
+    public async Task<Book> AddAsync(Book book)
     {
         _context.Books.Add(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return book;
     }
 
-    public Book Update(Book book)
+    public async Task<Book> UpdateAsync(Book book)
     {
         _context.Books.Update(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return book;
     }
 
-    public void Delete(Book book)
+    public async Task DeleteAsync(Book book)
     {
         _context.Books.Remove(book);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
-    public bool ExistsByIsbn(string isbn)
+    public async Task<bool> ExistsByIsbnAsync(string isbn)
     {
-        return _context.Books.Any(b => b.ISBN == isbn);
+        return await _context.Books.AnyAsync(b => b.ISBN == isbn);
     }
 }

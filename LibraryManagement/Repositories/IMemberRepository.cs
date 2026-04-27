@@ -4,10 +4,11 @@ namespace LibraryManagement.Api.Repositories;
 
 public interface IMemberRepository
 {
-    IEnumerable<Member> GetAll();
-    Member? GetById(Guid id);
-    Member Add(Member member);
-    bool ExistsByEmail(string email);
-    void Update(Member member);
-    void Delete(Member member);
+    Task<IEnumerable<Member>> GetAllAsync();
+    Task<Member?> GetByIdAsync(Guid id);
+    Task<Member?> GetByEmailAsync(string email);
+    Task<Member> AddAsync(Member member);
+    Task<bool> ExistsByEmailAsync(string email);
+    Task UpdateAsync(Member member);
+    Task DeleteAsync(Member member);
 }

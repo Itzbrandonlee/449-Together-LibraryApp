@@ -1,6 +1,7 @@
 using LibraryManagement.Api.Data;
 using LibraryManagement.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace LibraryManagement.Api.Repositories;
 
@@ -13,49 +14,54 @@ public class BorrowRecordRepository : IBorrowRecordRepository
         _context = context;
     }
 
-    public IEnumerable<BorrowRecord> GetAll()
+    public async Task<IEnumerable<BorrowRecord>> GetAllAsync()
     {
-        return _context.BorrowRecords
+        return await _context.BorrowRecords
             .Include(br => br.Member)
             .Include(br => br.Book)
-            .ToList();
+            .ToListAsync();
     }
 
-    public BorrowRecord? GetById(Guid id)
+    public async Task<BorrowRecord?> GetByIdAsync(Guid id)
     {
-        return _context.BorrowRecords
+        return await _context.BorrowRecords
             .Include(br => br.Member)
             .Include(br => br.Book)
-            .FirstOrDefault(br => br.Id == id);
+            .FirstOrDefaultAsync(br => br.Id == id);
     }
 
-    public IEnumerable<BorrowRecord> GetByMemberId(Guid memberId)
+    public async Task<IEnumerable<BorrowRecord>> GetByMemberIdAsync(Guid memberId)
     {
-        return _context.BorrowRecords
+        return await _context.BorrowRecords
             .Include(br => br.Book)
             .Where(br => br.MemberId == memberId)
-            .ToList();
+            .ToListAsync();
     }
 
-    public BorrowRecord Add(BorrowRecord record)
+    public async Task<BorrowRecord> AddAsync(BorrowRecord record)
     {
         _context.BorrowRecords.Add(record);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return record;
     }
 
-    public BorrowRecord Update(BorrowRecord record)
+    public async Task<BorrowRecord> UpdateAsync(BorrowRecord record)
     {
         _context.BorrowRecords.Update(record);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
         return record;
     }
 
-    public bool HasActiveBorrow(Guid memberId, Guid bookId)
+    public async Task<bool> HasActiveBorrowAsync(Guid memberId, Guid bookId)
     {
-        return _context.BorrowRecords.Any(br =>
+        return await _context.BorrowRecords.AnyAsync(br =>
             br.MemberId == memberId &&
             br.BookId == bookId &&
             br.Status == "Borrowed");
+    }
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync()
+    {
+        return await _context.Database.BeginTransactionAsync();
     }
 }

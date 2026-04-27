@@ -4,10 +4,12 @@ namespace LibraryManagement.Api.Repositories;
 
 public interface IBookRepository
 {
-    IEnumerable<Book> GetAll();
-    Book? GetById(Guid id);
-    Book Add(Book book);
-    Book Update(Book book);
-    void Delete(Book book);
-    bool ExistsByIsbn(string isbn);
+    Task<IEnumerable<Book>> GetAllAsync();
+    Task<Book?> GetByIdAsync(Guid id);
+    Task<Book> AddAsync(Book book);
+    Task<Book> UpdateAsync(Book book);
+    Task DeleteAsync(Book book);
+    Task<bool> ExistsByIsbnAsync(string isbn);
+    Task<bool> TryDecrementAvailableCopiesAsync(Guid bookId);
+    Task<bool> IncrementAvailableCopiesAsync(Guid bookId);
 }
