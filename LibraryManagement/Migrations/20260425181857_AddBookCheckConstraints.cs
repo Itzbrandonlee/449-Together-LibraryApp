@@ -21,10 +21,10 @@ namespace LibraryManagement.Migrations
                 table: "Members",
                 sql: "length(FullName) > 0");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_BorrowRecords_BorrowDate",
-                table: "BorrowRecords",
-                sql: "BorrowDate <= CURRENT_TIMESTAMP");
+            // migrationBuilder.AddCheckConstraint(
+            //    name: "CK_BorrowRecords_BorrowDate",
+            //    table: "BorrowRecords",
+            //    sql: "BorrowDate <= CURRENT_TIMESTAMP");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_BorrowRecords_ReturnDate",
@@ -63,9 +63,9 @@ namespace LibraryManagement.Migrations
                 name: "CK_Members_FullName",
                 table: "Members");
 
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_BorrowRecords_BorrowDate",
-                table: "BorrowRecords");
+            //migrationBuilder.DropCheckConstraint(
+            //    name: "CK_BorrowRecords_BorrowDate",
+            //    table: "BorrowRecords");
 
             migrationBuilder.DropCheckConstraint(
                 name: "CK_BorrowRecords_ReturnDate",

@@ -53,7 +53,7 @@ public class MembersController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.FullName))
             return BadRequest(new { error = "FullName is required." });
 
-        if (string.IsNullOrWhiteSpace(request.Email) || ! !IsValidEmail(request.Email))
+        if (string.IsNullOrWhiteSpace(request.Email) || !IsValidEmail(request.Email))
             return BadRequest(new { error = "A valid Email is required." });
 
         var created = await _memberService.CreateMemberAsync(request);
@@ -66,7 +66,7 @@ public class MembersController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.FullName))
             return BadRequest(new { error = "FullName is required." });
 
-        if (string.IsNullOrWhiteSpace(request.Email) || ! !IsValidEmail(request.Email))
+        if (string.IsNullOrWhiteSpace(request.Email) || !IsValidEmail(request.Email))
             return BadRequest(new { error = "A valid Email is required." });
 
         var updated = await _memberService.UpdateMemberAsync(id, request);
